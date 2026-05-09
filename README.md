@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L https://github.com/secretApiKey/viper-panel/archive/refs/heads/main.zip -o viper-panel.zip && unzip -o viper-panel.zip && cd viper-panel-main && chmod +x installer.sh install-components.sh && bash installer.sh
+apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L https://github.com/secretApiKey/viper-script/archive/refs/heads/main.zip -o viper-script.zip && unzip -o viper-script.zip && cd viper-script-main && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
 ### Command
 
