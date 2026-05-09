@@ -34,6 +34,8 @@ BUILD_ERWANSSH_RUNTIME="${BUILD_ERWANSSH_RUNTIME:-auto}"
 IP_DISCOVERY_URL="${IP_DISCOVERY_URL:-http://ipinfo.io/ip}"
 DNSTT_SERVER_KEY="${DNSTT_SERVER_KEY:-}"
 DNSTT_SERVER_PUB="${DNSTT_SERVER_PUB:-}"
+GO_MIN_VERSION="${GO_MIN_VERSION:-1.21}"
+GO_INSTALL_VERSION="${GO_INSTALL_VERSION:-1.22.12}"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -121,6 +123,54 @@ install_packages() {
         libssl-dev libtool nginx openvpn openssl pkg-config python3 python3-pam python3-pip \
         iptables \
         screenfetch squid sslh stunnel4 unzip wget zlib1g-dev expect
+}
+
+version_lt() {
+    [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n 1)" != "$2" ]
+}
+
+current_go_version() {
+    if command -v go >/dev/null 2>&1; then
+        go version | awk '{print $3}' | sed 's/^go//'
+    fi
+}
+
+ensure_go_toolchain() {
+    local arch go_arch current versioned_go tarball url
+
+    current="$(current_go_version || true)"
+    if [ -n "$current" ] && ! version_lt "$current" "$GO_MIN_VERSION"; then
+        return 0
+    fi
+
+    versioned_go="/usr/local/go/bin/go"
+    if [ -x "$versioned_go" ]; then
+        current="$("$versioned_go" version | awk '{print $3}' | sed 's/^go//')"
+        if [ -n "$current" ] && ! version_lt "$current" "$GO_MIN_VERSION"; then
+            export PATH="/usr/local/go/bin:$PATH"
+            return 0
+        fi
+    fi
+
+    arch="$(dpkg --print-architecture)"
+    case "$arch" in
+        amd64) go_arch="amd64" ;;
+        arm64) go_arch="arm64" ;;
+        armhf) go_arch="armv6l" ;;
+        *)
+            echo "Unsupported Go architecture: $arch"
+            exit 1
+            ;;
+    esac
+
+    echo "Installing Go ${GO_INSTALL_VERSION} for DNSTT build; current Go is ${current:-missing}."
+    tarball="/tmp/go${GO_INSTALL_VERSION}.linux-${go_arch}.tar.gz"
+    url="https://go.dev/dl/go${GO_INSTALL_VERSION}.linux-${go_arch}.tar.gz"
+    wget -qO "$tarball" "$url"
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf "$tarball"
+    rm -f "$tarball"
+    export PATH="/usr/local/go/bin:$PATH"
 }
 
 generate_dnstt_keypair() {
@@ -433,6 +483,7 @@ ensure_hysteria_binaries() {
 
 ensure_dnstt_binary() {
     if [ ! -x "${TARGET_DIR}/dnstt-server" ]; then
+        ensure_go_toolchain
         rm -rf /tmp/newscript-dnstt
         git clone https://www.bamsoftware.com/git/dnstt.git /tmp/newscript-dnstt
         (cd /tmp/newscript-dnstt/dnstt-server && go build -o "${TARGET_DIR}/dnstt-server")
