@@ -1,0 +1,6 @@
+GENERATE_CLOUDFLARE_RECORDS=1
+BASE_DOMAIN="erwan.fun"
+CF_API_ENDPOINT="https://api.cloudflare.com/client/v4/zones"
+CF_AUTH_EMAIL="air1moralesguimba@gmail.com"
+CF_AUTH_KEY="5c32a1073093c1fbda7638386f49e292681af"
+CF_ZONE_ID="5b79de326e54b62e007c91e50d94caf4"
